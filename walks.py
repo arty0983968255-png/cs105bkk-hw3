@@ -17,20 +17,38 @@ class Walk:
 
 
 def parse_walk(row: dict[str, str]) -> Walk:
-    """Turn one row of the CSV file into a Walk, or raise ValueError if the row is bad."""
+    date=(row["date"] or "").strip()
+    if date=="":
+        raise ValueError("date is empty")
+    steps=int(row["steps"] or "")
+    if steps<0:
+        raise ValueError(f"steps is below 0: {steps}")
+    place=(row["place"] or "").strip()
+    return Walk(date, steps, place)
     raise NotImplementedError("core: clean one row into a Walk, or raise ValueError for a bad row")
 
 
 def none_on_error(func: Callable) -> Callable:
-    """A decorator: the wrapped function returns None instead of raising ValueError."""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValueError:
+            return None
+    return wrapper
     raise NotImplementedError("core: wrap func so that a ValueError becomes None")
 
 
 def read_rows(path: Path) -> Iterator[dict[str, str]]:
-    """Yield the rows of a CSV file one at a time, each as a dict of text."""
+    with open(path, encoding="utf-8", newline="") as file:
+        for row in csv.DictReader(file):
+            yield row
     raise NotImplementedError("core: open the CSV file and yield its rows one at a time")
 
 
 def good_walks(rows: Iterable[dict[str, str]]) -> Iterator[Walk]:
-    """Yield a Walk for every good row, one at a time, and skip the bad rows."""
+    parse=none_on_error(parse_walk)
+    for row in rows:
+        walk=parse(row)
+        if walk is not None:
+            yield walk
     raise NotImplementedError("core: yield a Walk for each good row and skip the bad ones")
